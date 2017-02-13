@@ -1,0 +1,26 @@
+<network>
+ <hosts/>
+ <switches>
+  <switch y="505" x="748"/>
+  <switch y="794" x="787"/>
+  <switch y="487" x="1094"/>
+  <switch y="216" x="927"/>
+  <switch y="259" x="499"/>
+  <switch y="581" x="450"/>
+ </switches>
+ <sdnControllers/>
+ <switchToSwitchLinks>
+  <link bandwidth="1" packetLoss="0" node1="s3" delay="20" node2="s1"/>
+  <link bandwidth="1" packetLoss="0" node1="s2" delay="4" node2="s1"/>
+  <link bandwidth="1" packetLoss="0" node1="s6" delay="17" node2="s2"/>
+  <link bandwidth="1" packetLoss="0" node1="s1" delay="1" node2="s6"/>
+  <link bandwidth="1" packetLoss="0" node1="s5" delay="9" node2="s6"/>
+  <link bandwidth="1" packetLoss="0" node1="s1" delay="15" node2="s5"/>
+  <link bandwidth="1" packetLoss="0" node1="s4" delay="2" node2="s5"/>
+  <link bandwidth="1" packetLoss="0" node1="s1" delay="10" node2="s4"/>
+  <link bandwidth="1" packetLoss="0" node1="s3" delay="6" node2="s2"/>
+  <link bandwidth="1" packetLoss="0" node1="s4" delay="15" node2="s3"/>
+ </switchToSwitchLinks>
+ <textLabels/>
+ <controllerToSwitchLinks/>
+</network>
