@@ -26,9 +26,9 @@ class Graph(object):
             distance += self._weight_map[path[i]][path[i + 1]]
         return distance
 
-    def remove_edge(self, vertex1, vertex2):
-        self._weight_map[vertex1][vertex2] = float('+inf')
-        self._weight_map[vertex2][vertex1] = float('+inf')
+    def remove_edge(self, edge):
+        self._weight_map[edge[0]][edge[1]] = float('+inf')
+        self._weight_map[edge[1]][edge[0]] = float('+inf')
 
     def remove_vertex(self, vertex):
         self._vertices.pop(vertex)

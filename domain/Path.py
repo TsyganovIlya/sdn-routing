@@ -12,6 +12,9 @@ class Path(object):
     def get_vertices(self, start_index, end_index):
         return self._vertices[start_index:end_index]
 
+    def get_edge(self, vertex_index_1, vertex_index_2):
+        return self._vertices[vertex_index_1], self._vertices[vertex_index_2]
+
     @property
     def source(self):
         return self._vertices[0]
