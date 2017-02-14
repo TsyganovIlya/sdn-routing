@@ -2,22 +2,20 @@ from SegmentationAlgorithm import SegmentationAlgorithm
 from DijkstraAlgorithm import DijkstraAlgorithm
 from network.Sender import Sender
 from collections import defaultdict
+from util.DeepCopier import DeepCopier
 
 
 class RoutingController(object):
 
-    def __init__(self, switches, adjacency, weights, logger):
+    def __init__(self, switches, weight_map, logger):
         """
-
-        :type weights: defaultdict
-        :type adjacency: defaultdict
+        :type weight_map: defaultdict
         :type switches: dict
         """
         self._is_segmented = False
         self._islands = []
         self._switches = switches
-        self._adjacency = adjacency
-        self._weights = weights
+        self._weight_map = weight_map
         self._logger = logger
         self._sender = Sender(logger)
 
@@ -26,7 +24,8 @@ class RoutingController(object):
         return self._is_segmented
 
     def compute_islands(self):
-        alg = SegmentationAlgorithm(self._switches, self._weights.copy())
+        copier = DeepCopier(self._weight_map)
+        alg = SegmentationAlgorithm(self._switches.keys(), copier.make_copy())
         alg.do()
         self._is_segmented = True
         self._islands = alg.islands
@@ -38,16 +37,14 @@ class RoutingController(object):
             islands_representation.append(','.join([str(sw) for sw in island]))
         return bytearray(';'.join(islands_representation), 'utf-8')
 
-    def compute_path(self, src_dpid, dst_dpid):
-        alg = DijkstraAlgorithm(self._weights.copy())
-        island = self._find_island_with(src_dpid, dst_dpid)
+    def compute_path(self, source_switch, destination_switch):
+        copier = DeepCopier(self._weight_map)
+        island = self._find_island_with(source_switch, destination_switch)
         if len(island) > 0:
-            alg.set_switches(island)
-            print "Dijkstra in island"
+            alg = DijkstraAlgorithm(copier.make_copy(), island)
         else:
-            alg.set_switches(self._switches.keys())
-            print "Dijkstra in whole network"
-        path = alg.compute_shortest_path(src_dpid, dst_dpid)
+            alg = DijkstraAlgorithm(copier.make_copy(), self._switches.keys())
+        path = alg.compute_shortest_path(source_switch, destination_switch)
         self._sender.send_path(path.to_byte_array())
         return path
 

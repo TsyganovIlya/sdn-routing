@@ -4,7 +4,7 @@ from PrimAlgorithm import PrimAlgorithm
 class SegmentationAlgorithm(object):
 
     def __init__(self, switches, weights_matrix):
-        self._switches = switches.keys()
+        self._switches = switches
         self._weights_matrix = weights_matrix
         self.connection_value = 0.8
         self.minimum_tree = []

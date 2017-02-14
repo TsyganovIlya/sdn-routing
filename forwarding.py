@@ -65,7 +65,7 @@ class Switch(EventMixin):
     _eventMixin_events = {NewFlowEvent}
 
     def __init__(self, connection, l3_matching=False):
-        self._routing_controller = RoutingController(switches, port_map, weight_map, log)
+        self._routing_controller = RoutingController(switches, weight_map, log)
         self.connection = connection
         self.l3_matching = l3_matching
         connection.addListeners(self)

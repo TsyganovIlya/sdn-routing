@@ -3,7 +3,7 @@ from domain.Path import Path
 
 class DijkstraAlgorithm(object):
 
-    def __init__(self, weight_map):
+    def __init__(self, weight_map, vertices):
         self._vertices = []
         self._weight_map = weight_map
         self._source_vertex = 0
@@ -11,9 +11,7 @@ class DijkstraAlgorithm(object):
         self._distance = {}
         self._previous = {}
         self._viewed_vertices = []
-
-    def set_switches(self, value):
-        self._vertices = value
+        self._vertices = vertices
 
     def compute_shortest_path(self, source_vertex, destination_vertex):
         self._source_vertex = source_vertex
