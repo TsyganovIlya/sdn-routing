@@ -6,6 +6,12 @@ class Path(object):
     def __init__(self, vertices):
         self._vertices = vertices
 
+    def get_vertex(self, index):
+        return self._vertices[index]
+
+    def get_vertices(self, start_index, end_index):
+        return self._vertices[start_index:end_index]
+
     @property
     def source(self):
         return self._vertices[0]
@@ -27,4 +33,10 @@ class Path(object):
 
     def get_iterator(self):
         return PathIterator(self._vertices)
+
+    def __eq__(self, other):
+        """
+        :type other: Path
+        """
+        return self._vertices == other.get_vertices(0, other.vertex_number)
 
