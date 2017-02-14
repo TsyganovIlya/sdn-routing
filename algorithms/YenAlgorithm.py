@@ -23,11 +23,11 @@ class YenAlgorithm(object):
                         edge = (paths[k - 1][i], paths[k - 1][i + 1])
                         self._graph.remove_edge(edge)
                 for root_path_node in [node for node in root_path if node is not spur_node]:
-                    self._graph.remove_node(root_path_node)
+                    self._graph.remove_vertex(root_path_node)
                 spur_path = dijkstra(spur_node, dst_vertex)
                 total_path = root_path + spur_path
                 potential_paths.append(total_path)
-                self._graph.restore_nodes()
+                self._graph.restore_vertices()
                 self._graph.restore_edges()
             if len(potential_paths) is 0:
                 break
