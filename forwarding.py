@@ -18,39 +18,39 @@ log = core.getLogger()
 
 switches = {}
 switch_ports = {}
-adj = defaultdict(lambda: defaultdict(lambda: None))
-weights = defaultdict(lambda: defaultdict(lambda: None))
-
-mac_learning = {}
+port_map = defaultdict(lambda: defaultdict(lambda: None))
+weight_map = defaultdict(lambda: defaultdict(lambda: None))
+mac_table = {}
 
 
 def _install_path(path, match):
-    dst_sw = path.source
-    cur_sw = path.destination
-    dst_pck = match.dl_dst
+    destination_switch_index = path.destination
+    current_switch_index = path.source
+    destination_package = match.dl_dst
 
-    msg = of.ofp_flow_mod()
-    msg.match = match
-    msg.idle_timeout = 10
-    msg.flags = of.OFPFF_SEND_FLOW_REM
-    msg.actions.append(of.ofp_action_output(port=mac_learning[dst_pck].port))
-    log.debug("Installing forward from switch s%s to output port %s", cur_sw,
-              mac_learning[dst_pck].port)
-    switches[dst_sw].connection.send(msg)
+    message = of.ofp_flow_mod()
+    message.match = match
+    message.idle_timeout = 10
+    message.flags = of.OFPFF_SEND_FLOW_REM
+    message.actions.append(of.ofp_action_output(port=mac_table[destination_package].port))
+    log.debug("Installing forward from switch s%s to output port %s", current_switch_index,
+              mac_table[destination_package].port)
+    switches[destination_switch_index].connection.send(message)
 
-    next_sw = cur_sw
-    cur_sw = path.previous_sequence[next_sw]
-    while cur_sw is not None:  # for switch in path.keys():
-        msg = of.ofp_flow_mod()
-        msg.match = match
-        msg.idle_timeout = 10
-        msg.flags = of.OFPFF_SEND_FLOW_REM
-        log.debug("Installing forward from switch s%s to switch s%s output port %s", cur_sw,
-                  next_sw, adj[cur_sw][next_sw])
-        msg.actions.append(of.ofp_action_output(port=adj[cur_sw][next_sw]))
-        switches[cur_sw].connection.send(msg)
-        next_sw = cur_sw
-        cur_sw = path.previous_sequence[next_sw]
+    iterator = path.get_iterator()
+    while iterator.move_next():
+        next_switch_index = iterator.current
+
+        message = of.ofp_flow_mod()
+        message.match = match
+        message.idle_timeout = 10
+        message.flags = of.OFPFF_SEND_FLOW_REM
+        log.debug("Installing forward from switch s%s to switch s%s output port %s", current_switch_index,
+                  next_switch_index, port_map[current_switch_index][next_switch_index])
+        message.actions.append(of.ofp_action_output(port=port_map[current_switch_index][next_switch_index]))
+        switches[current_switch_index].connection.send(message)
+
+        current_switch_index = next_switch_index
 
 
 class NewFlowEvent(Event):
@@ -65,7 +65,7 @@ class Switch(EventMixin):
     _eventMixin_events = {NewFlowEvent}
 
     def __init__(self, connection, l3_matching=False):
-        self._routing_controller = RoutingController(switches, adj, weights, log)
+        self._routing_controller = RoutingController(switches, port_map, weight_map, log)
         self.connection = connection
         self.l3_matching = l3_matching
         connection.addListeners(self)
@@ -135,44 +135,44 @@ class Switch(EventMixin):
         SwitchPort = namedtuple('SwitchPoint', 'dpid port')
 
         if (event.dpid, event.port) not in switch_ports:
-            mac_learning[packet.src] = SwitchPort(event.dpid, event.port)
+            mac_table[packet.src] = SwitchPort(event.dpid, event.port)
 
         if packet.effective_ethertype == packet.LLDP_TYPE:
             drop()
         elif packet.dst.is_multicast:
             flood()
-        elif packet.dst not in mac_learning:
+        elif packet.dst not in mac_table:
             flood()
         elif packet.effective_ethertype == packet.ARP_TYPE:
 
             drop()
-            dst = mac_learning[packet.dst]
+            dst = mac_table[packet.dst]
             msg = of.ofp_packet_out()
             msg.data = event.ofp.data
             msg.actions.append(of.ofp_action_output(port=dst.port))
             switches[dst.dpid].connection.send(msg)
         else:
-            dst = mac_learning[packet.dst]
+            dst = mac_table[packet.dst]
 
             if not self._routing_controller.is_segmented:
                 self._routing_controller.compute_islands()
 
-            path_dpids = self._routing_controller.compute_path(self.connection.dpid, dst.dpid)
-            if path_dpids is None:
+            path = self._routing_controller.compute_path(self.connection.dpid, dst.dpid)
+            if path is None:
                 flood()
                 return
 
-            log.debug("Path from %s to %s over path %s", packet.src, packet.dst, path_dpids)
+            log.debug("Path from %s to %s over path %s", packet.src, packet.dst, path)
             match = of.ofp_match.from_packet(packet)
-            _install_path(path_dpids, match)
+            _install_path(path, match)
             drop()
-            dst = mac_learning[packet.dst]
+            dst = mac_table[packet.dst]
             msg = of.ofp_packet_out()
             msg.data = event.ofp.data
             msg.actions.append(of.ofp_action_output(port=dst.port))
             switches[dst.dpid].connection.send(msg)
 
-            self.raiseEvent(NewFlowEvent(path_dpids, match, adj))
+            self.raiseEvent(NewFlowEvent(path, match, port_map))
 
     def _handle_ConnectionDown(self, event):
         log.debug("Switch s%s going down", self.connection.dpid)
@@ -196,7 +196,7 @@ class Forwarding(EventMixin):
             core.openflow.addListeners(self)
             core.openflow_discovery.addListeners(self)
 
-            parser = WeightsMatrixParser(weights, log)
+            parser = WeightsMatrixParser(weight_map, log)
             parser.read_matrix_from("weights_matrix.txt")
             log.debug("Forwarding started")
 
@@ -208,7 +208,7 @@ class Forwarding(EventMixin):
         if event.added:
             log.debug("Received LinkEvent, Link Added from s%s to s%s over port %d", link.dpid1,
                       link.dpid2, link.port1)
-            adj[link.dpid1][link.dpid2] = link.port1
+            port_map[link.dpid1][link.dpid2] = link.port1
             switch_ports[link.dpid1, link.port1] = link
         else:
             log.debug("Received LinkEvent, Link Removed from s%s to s%s over port %d", link.dpid1,

@@ -1,35 +1,30 @@
+from PathIterator import PathIterator
+
+
 class Path(object):
 
-    def __init__(self, src_vertex, dst_vertex, previous_sequence):
-        self._source = src_vertex
-        self._destination = dst_vertex
-        self._previous_sequence = previous_sequence
-
-    @property
-    def previous_sequence(self):
-        return self._previous_sequence
+    def __init__(self, vertices):
+        self._vertices = vertices
 
     @property
     def source(self):
-        return self._source
+        return self._vertices[0]
 
     @property
     def destination(self):
-        return self._destination
+        return self._vertices[len(self._vertices) - 1]
+
+    @property
+    def vertex_number(self):
+        return len(self._vertices)
 
     def to_byte_array(self):
-        representation = ",".join([str(s) for s in self.convert_to_ordered_sequence()])
+        representation = ",".join([str(s) for s in self._vertices])
         return bytearray(representation, 'utf-8')
 
     def __repr__(self):
-        return "->".join(["s{0}".format(s) for s in self.convert_to_ordered_sequence()])
+        return "->".join(["s{0}".format(s) for s in self._vertices])
 
-    def convert_to_ordered_sequence(self):
-        ordered_sequence = [self.destination]
-        u = self.previous_sequence[self.destination]
-        while u is not None:
-            ordered_sequence.insert(0, u)
-            u = self.previous_sequence[u]
-        return ordered_sequence
-
+    def get_iterator(self):
+        return PathIterator(self._vertices)
 
