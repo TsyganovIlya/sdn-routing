@@ -24,7 +24,7 @@ class Path(object):
         return self._vertices[len(self._vertices) - 1]
 
     @property
-    def count(self):
+    def size(self):
         return len(self._vertices)
 
     def to_byte_array(self):
@@ -41,5 +41,8 @@ class Path(object):
         """
         :type other: Path
         """
-        return self._vertices == other.get_vertices(0, other.count)
+        return self._vertices == other.get_vertices(0, other.size)
+
+    def __add__(self, other):
+        return Path(self._vertices + other.get_vertices(0, other.size))
 
