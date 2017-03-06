@@ -1,4 +1,4 @@
-from DijkstraAlgorithm import DijkstraAlgorithm
+from algorithms.DijkstraAlgorithm import DijkstraAlgorithm
 from domain.Graph import Graph
 
 
