@@ -44,5 +44,8 @@ class Path(object):
         return self._vertices == other.get_vertices(0, other.size)
 
     def __add__(self, other):
+        """
+        :type other: Path
+        """
         return Path(self._vertices + other.get_vertices(0, other.size))
 

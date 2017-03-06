@@ -14,7 +14,7 @@ from pox.lib.revent.revent import EventMixin, Event
 from algorithms.RoutingController import RoutingController
 from network.WeightsMatrixParser import WeightsMatrixParser
 
-log = core.getLogger()
+pox_logger = core.getLogger()
 
 switches = {}
 switch_ports = {}
@@ -33,8 +33,8 @@ def _install_path(path, match):
     message.idle_timeout = 10
     message.flags = of.OFPFF_SEND_FLOW_REM
     message.actions.append(of.ofp_action_output(port=mac_table[destination_package].port))
-    log.debug("Installing forward from switch s%s to output port %s", current_switch_index,
-              mac_table[destination_package].port)
+    pox_logger.debug("Installing forward from switch s%s to output port %s", current_switch_index,
+                     mac_table[destination_package].port)
     switches[destination_switch_index].connection.send(message)
 
     iterator = path.get_iterator()
@@ -45,8 +45,8 @@ def _install_path(path, match):
         message.match = match
         message.idle_timeout = 10
         message.flags = of.OFPFF_SEND_FLOW_REM
-        log.debug("Installing forward from switch s%s to switch s%s output port %s", current_switch_index,
-                  next_switch_index, port_map[current_switch_index][next_switch_index])
+        pox_logger.debug("Installing forward from switch s%s to switch s%s output port %s", current_switch_index,
+                         next_switch_index, port_map[current_switch_index][next_switch_index])
         message.actions.append(of.ofp_action_output(port=port_map[current_switch_index][next_switch_index]))
         switches[current_switch_index].connection.send(message)
 
@@ -65,7 +65,7 @@ class Switch(EventMixin):
     _eventMixin_events = {NewFlowEvent}
 
     def __init__(self, connection, l3_matching=False):
-        self._routing_controller = RoutingController(switches, weight_map, log)
+        self._routing_controller = RoutingController(switches, weight_map, pox_logger)
         self.connection = connection
         self.l3_matching = l3_matching
         connection.addListeners(self)
@@ -129,7 +129,7 @@ class Switch(EventMixin):
                 msg.in_port = event.port
                 self.connection.send(msg)
 
-        log.debug("Received PacketIn")
+        pox_logger.debug("Received PacketIn")
         packet = event.parsed
 
         SwitchPort = namedtuple('SwitchPoint', 'dpid port')
@@ -162,7 +162,7 @@ class Switch(EventMixin):
                 flood()
                 return
 
-            log.debug("Path from %s to %s over path %s", packet.src, packet.dst, path)
+            pox_logger.debug("Path from %s to %s over path %s", packet.src, packet.dst, path)
             match = of.ofp_match.from_packet(packet)
             _install_path(path, match)
             drop()
@@ -175,7 +175,7 @@ class Switch(EventMixin):
             self.raiseEvent(NewFlowEvent(path, match, port_map))
 
     def _handle_ConnectionDown(self, event):
-        log.debug("Switch s%s going down", self.connection.dpid)
+        pox_logger.debug("Switch s%s going down", self.connection.dpid)
         del switches[self.connection.dpid]
 
 
@@ -190,15 +190,15 @@ class Forwarding(EventMixin):
     _eventMixin_events = {NewSwitchEvent}
 
     def __init__(self, l3_matching):
-        log.debug("Forwarding coming up")
+        pox_logger.debug("Forwarding coming up")
 
         def startup():
             core.openflow.addListeners(self)
             core.openflow_discovery.addListeners(self)
 
-            parser = WeightsMatrixParser(weight_map, log)
+            parser = WeightsMatrixParser(weight_map)
             parser.read_matrix_from("weights_matrix.txt")
-            log.debug("Forwarding started")
+            pox_logger.debug("Forwarding started")
 
         self.l3_matching = l3_matching
         core.call_when_ready(startup, 'openflow', 'openflow_discovery')
@@ -206,16 +206,16 @@ class Forwarding(EventMixin):
     def _handle_LinkEvent(self, event):
         link = event.link
         if event.added:
-            log.debug("Received LinkEvent, Link Added from s%s to s%s over port %d", link.dpid1,
-                      link.dpid2, link.port1)
+            pox_logger.debug("Received LinkEvent, Link Added from s%s to s%s over port %d", link.dpid1,
+                             link.dpid2, link.port1)
             port_map[link.dpid1][link.dpid2] = link.port1
             switch_ports[link.dpid1, link.port1] = link
         else:
-            log.debug("Received LinkEvent, Link Removed from s%s to s%s over port %d", link.dpid1,
-                      link.dpid2, link.port1)
+            pox_logger.debug("Received LinkEvent, Link Removed from s%s to s%s over port %d", link.dpid1,
+                             link.dpid2, link.port1)
 
     def _handle_ConnectionUp(self, event):
-        log.debug("New switch connection: %s", event.connection)
+        pox_logger.debug("New switch connection: %s", event.connection)
         switch = Switch(event.connection, l3_matching=self.l3_matching)
         switches[event.dpid] = switch
         self.raiseEvent(NewSwitchEvent(switch))

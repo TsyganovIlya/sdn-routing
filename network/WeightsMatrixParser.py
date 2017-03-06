@@ -2,9 +2,8 @@
 
 class WeightsMatrixParser(object):
 
-    def __init__(self, weights, logger):
-        self.weights = weights
-        self.logger = logger
+    def __init__(self, weight_map):
+        self.weight_map = weight_map
 
     def read_matrix_from(self, file_name):
 
@@ -14,9 +13,8 @@ class WeightsMatrixParser(object):
             args = args[0].split('-')
             s1 = int(args[0])
             s2 = int(args[1])
-            self.weights[s1][s2] = weight
-            self.weights[s2][s1] = weight
-            self.logger.debug('Weight - {0}; Switch1 - {1}; Switch2 - {2}.'.format(weight, s1, s2))
+            self.weight_map[s1][s2] = weight
+            self.weight_map[s2][s1] = weight
 
         try:
             with open(file_name, 'r') as f:
