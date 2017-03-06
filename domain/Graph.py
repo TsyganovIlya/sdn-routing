@@ -19,7 +19,7 @@ class Graph(object):
     def count_distance_for(self, path):
         distance = 0
         for i in range(len(path) - 1):
-            distance += self._weight_map[path[i]][path[i + 1]]
+            distance += self._weight_map[path.get_vertex(i)][path.get_vertex(i + 1)]
         return distance
 
     def remove(self, edge):

@@ -10,6 +10,10 @@ class YenAlgorithm(object):
         self._dijkstra_alg = DijkstraAlgorithm(weight_map, vertices)
         self._shortest_paths = []
 
+    @property
+    def shortest_paths(self):
+        return self._shortest_paths
+
     def _compute_shortest_path(self, source_vertex, destination_vertex):
         return self._dijkstra_alg.compute_shortest_path(source_vertex, destination_vertex)
 
@@ -20,7 +24,7 @@ class YenAlgorithm(object):
             min_distance = float('+inf')
             new_shortest_path = None
             removed_edge = None
-            for edge in [shortest_path.get_edge(i, i + 1) for i in range(shortest_path.length - 1)]:
+            for edge in [shortest_path.get_edge(i, i + 1) for i in range(len(shortest_path) - 1)]:
                 self._graph.remove(edge)
                 intermediate_shortest_path = self._compute_shortest_path(source_vertex, destination_vertex)
                 if self._graph.count_distance_for(intermediate_shortest_path) <= min_distance:

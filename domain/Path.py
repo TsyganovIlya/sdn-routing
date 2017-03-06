@@ -23,16 +23,18 @@ class Path(object):
     def destination(self):
         return self._vertices[len(self._vertices) - 1]
 
-    @property
-    def length(self):
+    def __len__(self):
         return len(self._vertices)
 
     def to_byte_array(self):
         representation = ",".join([str(s) for s in self._vertices])
         return bytearray(representation, 'utf-8')
 
-    def __repr__(self):
+    def __str__(self):
         return "->".join(["s{0}".format(s) for s in self._vertices])
+
+    def __repr__(self):
+        return ",".join([str(s) for s in self._vertices])
 
     @property
     def vertex_iterator(self):

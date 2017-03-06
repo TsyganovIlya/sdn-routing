@@ -3,6 +3,7 @@ from DijkstraAlgorithm import DijkstraAlgorithm
 from network.Sender import Sender
 from collections import defaultdict
 from util.DeepCopier import DeepCopier
+from algorithms.YenAlgorithm import YenAlgorithm
 
 
 class RoutingController(object):
@@ -37,6 +38,12 @@ class RoutingController(object):
             islands_representation.append(','.join([str(sw) for sw in island]))
         return bytearray(';'.join(islands_representation), 'utf-8')
 
+    def _convert_paths_to_bytes(self, paths):
+        paths_representation = []
+        for path in paths:
+            paths_representation.append(path.__repr__())
+        return bytearray(';'.join(paths_representation), 'utf-8')
+
     def compute_path(self, source_switch, destination_switch):
         copier = DeepCopier(self._weight_map)
         island = self._find_island_with(source_switch, destination_switch)
@@ -47,6 +54,18 @@ class RoutingController(object):
         path = alg.compute_shortest_path(source_switch, destination_switch)
         self._sender.send_path(path.to_byte_array())
         return path
+
+    def compute_paths(self, source_switch, destination_switch):
+        copier = DeepCopier(self._weight_map)
+        island = self._find_island_with(source_switch, destination_switch)
+        if len(island) > 0:
+            alg = YenAlgorithm(copier.make_copy(), island, 3)
+        else:
+            alg = YenAlgorithm(copier.make_copy(), self._switches.keys(), 3)
+        alg.compute_shortest_paths(source_switch, destination_switch)
+        paths = alg.shortest_paths
+        self._sender.send_paths(self._convert_paths_to_bytes(paths))
+        return paths[0]
 
     def _find_island_with(self, dpid1, dpid2):
         for island in self._islands:

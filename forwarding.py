@@ -157,7 +157,7 @@ class Switch(EventMixin):
             if not self._routing_controller.is_segmented:
                 self._routing_controller.compute_islands()
 
-            path = self._routing_controller.compute_path(self.connection.dpid, dst.dpid)
+            path = self._routing_controller.compute_paths(self.connection.dpid, dst.dpid)
             if path is None:
                 flood()
                 return
