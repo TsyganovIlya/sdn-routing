@@ -19,7 +19,8 @@ class YenAlgorithmTest(unittest.TestCase):
         ]
         alg = YenAlgorithm(weights_matrix, switches, k=3)
         alg.compute_shortest_paths(source_vertex=1, destination_vertex=5)
-        self.assertItemsEqual(expected_paths, alg.shortest_paths)
+        for i in range(len(alg.shortest_paths)):
+            self.assertEqual(expected_paths[i], alg.shortest_paths[i])
 
 if __name__ == '__main__':
     unittest.main()
