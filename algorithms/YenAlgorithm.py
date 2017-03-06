@@ -16,7 +16,7 @@ class YenAlgorithm(object):
     def compute_shortest_paths(self, source_vertex, destination_vertex):
         shortest_path = self._compute_shortest_path(source_vertex, destination_vertex)
         self._shortest_paths.append(shortest_path)
-        for i in range(self._k - 1):
+        for _ in range(self._k - 1):
             min_distance = float('+inf')
             new_shortest_path = None
             removed_edge = None
@@ -24,6 +24,7 @@ class YenAlgorithm(object):
                 self._graph.remove(edge)
                 intermediate_shortest_path = self._compute_shortest_path(source_vertex, destination_vertex)
                 if self._graph.count_distance_for(intermediate_shortest_path) <= min_distance:
+                    min_distance = self._graph.count_distance_for(intermediate_shortest_path)
                     new_shortest_path = intermediate_shortest_path
                     removed_edge = edge
                 self._graph.recover_last_deleted_edge()
