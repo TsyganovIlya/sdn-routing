@@ -37,7 +37,7 @@ def _install_path(path, match):
                      mac_table[destination_package].port)
     switches[destination_switch_index].connection.send(message)
 
-    iterator = path.get_iterator()
+    iterator = path.vertex_iterator
     while iterator.move_next():
         next_switch_index = iterator.current
 

@@ -1,4 +1,4 @@
-class PathIterator(object):
+class VertexIterator(object):
 
     def __init__(self, vertices):
         self._vertices = vertices
@@ -9,9 +9,6 @@ class PathIterator(object):
             self._current += 1
             return True
         return False
-
-    def reset(self):
-        self._current = 0
 
     @property
     def current(self):

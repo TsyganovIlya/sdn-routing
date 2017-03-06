@@ -1,4 +1,3 @@
-from util.DeepCopier import DeepCopier
 from collections import defaultdict
 
 
@@ -11,14 +10,11 @@ class Graph(object):
         """
         self._vertices = vertices
         self._weight_map = weight_map
-        self._stored_vertices = vertices[:]
-        self._stored_weight_map = DeepCopier(weight_map).make_copy()
+        self._deleted_edge = ()
 
-    def restore_edges(self):
-        self._weight_map = DeepCopier(self._stored_weight_map).make_copy()
-
-    def restore_vertices(self):
-        self._vertices = self._stored_vertices[:]
+    @property
+    def weight_map(self):
+        return self._weight_map
 
     def count_distance_for(self, path):
         distance = 0
@@ -26,9 +22,16 @@ class Graph(object):
             distance += self._weight_map[path[i]][path[i + 1]]
         return distance
 
-    def remove_edge(self, edge):
-        self._weight_map[edge[0]][edge[1]] = float('+inf')
-        self._weight_map[edge[1]][edge[0]] = float('+inf')
+    def remove(self, edge):
+        """
+        :param edge: tuple <v1, v2>
+        """
+        self._deleted_edge = edge[0], edge[1], self._weight_map[edge[0]][edge[1]]
+        del self._weight_map[edge[1]][edge[0]]
+        del self._weight_map[edge[0]][edge[1]]
 
-    def remove_vertex(self, vertex):
-        self._vertices.pop(vertex)
+    def recover_last_deleted_edge(self):
+        edge = self._deleted_edge
+        weight = edge[2]
+        self._weight_map[edge[1]][edge[0]] = weight
+        self._weight_map[edge[0]][edge[1]] = weight

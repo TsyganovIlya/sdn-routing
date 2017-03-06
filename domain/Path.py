@@ -1,4 +1,4 @@
-from PathIterator import PathIterator
+from VertexIterator import VertexIterator
 
 
 class Path(object):
@@ -24,7 +24,7 @@ class Path(object):
         return self._vertices[len(self._vertices) - 1]
 
     @property
-    def size(self):
+    def length(self):
         return len(self._vertices)
 
     def to_byte_array(self):
@@ -34,18 +34,19 @@ class Path(object):
     def __repr__(self):
         return "->".join(["s{0}".format(s) for s in self._vertices])
 
-    def get_iterator(self):
-        return PathIterator(self._vertices)
+    @property
+    def vertex_iterator(self):
+        return VertexIterator(self._vertices)
 
     def __eq__(self, other):
         """
         :type other: Path
         """
-        return self._vertices == other.get_vertices(0, other.size)
+        return self._vertices == other.get_vertices(0, other.length)
 
     def __add__(self, other):
         """
         :type other: Path
         """
-        return Path(self._vertices + other.get_vertices(0, other.size))
+        return Path(self._vertices + other.get_vertices(0, other.length))
 
