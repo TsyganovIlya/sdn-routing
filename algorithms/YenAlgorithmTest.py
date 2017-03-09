@@ -1,5 +1,5 @@
 import unittest
-from YenAlgorithm import YenAlgorithm
+from algorithms.YenAlgorithm import YenAlgorithm
 from domain.Path import Path
 
 
@@ -19,8 +19,23 @@ class YenAlgorithmTest(unittest.TestCase):
         ]
         alg = YenAlgorithm(weights_matrix, switches, k=3)
         alg.compute_shortest_paths(source_vertex=1, destination_vertex=5)
-        for i in range(len(alg.shortest_paths)):
-            self.assertEqual(expected_paths[i], alg.shortest_paths[i])
+        self.assertSequenceEqual(expected_paths, alg.shortest_paths)
+
+        switches = range(1, 7)
+        weights_matrix = {1: {2: 50, 3: 10, 4: 50},
+                          2: {1: 50, 5: 60},
+                          3: {1: 10, 5: 30, 6: 20},
+                          4: {1: 50, 6: 50},
+                          5: {2: 60, 3: 30, 6: 40},
+                          6: {5: 40, 3: 20, 4: 50}}
+        expected_paths = [
+            Path([1, 3, 6]),
+            Path([1, 3, 5, 6]),
+            Path([1, 4, 6])
+        ]
+        alg = YenAlgorithm(weights_matrix, switches, k=3)
+        alg.compute_shortest_paths(source_vertex=1, destination_vertex=6)
+        self.assertSequenceEqual(expected_paths, alg.shortest_paths)
 
 if __name__ == '__main__':
     unittest.main()
