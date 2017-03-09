@@ -57,11 +57,7 @@ class RoutingController(object):
 
     def compute_paths(self, source_switch, destination_switch):
         copier = DeepCopier(self._weight_map)
-        island = self._find_island_with(source_switch, destination_switch)
-        if len(island) > 0:
-            alg = YenAlgorithm(copier.make_copy(), island, 3)
-        else:
-            alg = YenAlgorithm(copier.make_copy(), self._switches.keys(), 3)
+        alg = YenAlgorithm(copier.make_copy(), self._switches.keys(), 3)
         alg.compute_shortest_paths(source_switch, destination_switch)
         paths = alg.shortest_paths
         self._sender.send_paths(self._convert_paths_to_bytes(paths))

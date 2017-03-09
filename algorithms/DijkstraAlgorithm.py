@@ -25,6 +25,8 @@ class DijkstraAlgorithm(object):
         self._distance[self._source_vertex] = 0
         while len(self._viewed_vertices) > 0:
             current_vertex = self._find_nearest_vertex()
+            if not current_vertex:
+                break
             self._viewed_vertices.remove(current_vertex)
             for vertex in self._vertices:
                 if vertex in self._weight_map[current_vertex]:
