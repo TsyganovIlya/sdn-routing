@@ -46,13 +46,13 @@ class RoutingController(object):
 
     def compute_path(self, source_switch, destination_switch):
         copier = DeepCopier(self._weight_map)
-        island = self._find_island_with(source_switch, destination_switch)
-        if len(island) > 0:
-            alg = DijkstraAlgorithm(copier.make_copy(), island)
-        else:
-            alg = DijkstraAlgorithm(copier.make_copy(), self._switches.keys())
+        # island = self._find_island_with(source_switch, destination_switch)
+        # if len(island) > 0:
+        #    alg = DijkstraAlgorithm(copier.make_copy(), island)
+        # else:
+        alg = DijkstraAlgorithm(copier.make_copy(), self._switches.keys())
         path = alg.compute_shortest_path(source_switch, destination_switch)
-        self._sender.send_path(path.to_byte_array())
+        self._sender.send_path(path.__repr__())
         return path
 
     def compute_paths(self, source_switch, destination_switch):

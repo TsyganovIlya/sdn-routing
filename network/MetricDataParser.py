@@ -1,6 +1,6 @@
 
 
-class WeightsMatrixParser(object):
+class MetricDataParser(object):
 
     def __init__(self, weight_map):
         self.weight_map = weight_map

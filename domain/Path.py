@@ -25,7 +25,7 @@ class Path(object):
         return self._vertices[vertex_index_1], self._vertices[vertex_index_2]
 
     def __bytes__(self):
-        return bytes(self.__repr__(), 'utf-8')
+        return bytes(self.__repr__())
 
     def __getitem__(self, item):
         return self._vertices[item]

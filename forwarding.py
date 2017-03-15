@@ -12,7 +12,7 @@ from pox.core import core
 from pox.lib.revent.revent import EventMixin, Event
 
 from algorithms.RoutingController import RoutingController
-from network.WeightsMatrixParser import WeightsMatrixParser
+from network.MetricDataParser import MetricDataParser
 
 pox_logger = core.getLogger()
 
@@ -154,10 +154,10 @@ class Switch(EventMixin):
         else:
             dst = mac_table[packet.dst]
 
-            if not self._routing_controller.is_segmented:
-                self._routing_controller.compute_islands()
+            # if not self._routing_controller.is_segmented:
+            #    self._routing_controller.compute_islands()
 
-            path = self._routing_controller.compute_paths(self.connection.dpid, dst.dpid)
+            path = self._routing_controller.compute_path(self.connection.dpid, dst.dpid)
             if path is None:
                 flood()
                 return
@@ -196,8 +196,8 @@ class Forwarding(EventMixin):
             core.openflow.addListeners(self)
             core.openflow_discovery.addListeners(self)
 
-            parser = WeightsMatrixParser(weight_map)
-            parser.read_matrix_from("weights_matrix.txt")
+            parser = MetricDataParser(weight_map)
+            parser.read_matrix_from("metric_data.txt")
             pox_logger.debug("Forwarding started")
 
         self.l3_matching = l3_matching
