@@ -12,7 +12,8 @@ class Sender(object):
             sender.connect(('127.0.0.1', 6111))
             sender.send(b'Islands:' + islands_in_bytes)
         except socket.error as e:
-            self.logger.debug('Caught exception socket.error: {0}'.format(e))
+            pass
+            # self.logger.debug('Caught exception socket.error: {0}'.format(e))
         finally:
             sender.close()
 
@@ -22,7 +23,8 @@ class Sender(object):
             sender.connect(('127.0.0.1', 6111))
             sender.send(b'Path:' + path_in_bytes)
         except socket.error as e:
-            self.logger.debug('Caught exception socket.error: {0}'.format(e))
+            pass
+            # self.logger.debug('Caught exception socket.error: {0}'.format(e))
         finally:
             sender.close()
 
@@ -32,6 +34,7 @@ class Sender(object):
             sender.connect(('127.0.0.1', 6111))
             sender.send(b'Paths:' + paths_in_bytes)
         except socket.error as e:
-            self.logger.debug('Caught exception socket.error: {0}'.format(e))
+            pass
+            # self.logger.debug('Caught exception socket.error: {0}'.format(e))
         finally:
             sender.close()

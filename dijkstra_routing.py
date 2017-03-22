@@ -11,8 +11,9 @@ import pox.openflow.libopenflow_01 as of
 from pox.core import core
 from pox.lib.revent.revent import EventMixin, Event
 
-from algorithms.RoutingController import RoutingController
 from network.MetricDataParser import MetricDataParser
+from algorithms.DijkstraAlgorithm import DijkstraAlgorithm
+from network.Sender import Sender
 
 pox_logger = core.getLogger()
 
@@ -23,7 +24,7 @@ weight_map = defaultdict(lambda: defaultdict(lambda: None))
 mac_table = {}
 
 
-def _install_path(path, match):
+def _install_route(path, match):
     destination_switch_index = path.destination
     current_switch_index = path.source
     destination_package = match.dl_dst
@@ -65,7 +66,6 @@ class Switch(EventMixin):
     _eventMixin_events = {NewFlowEvent}
 
     def __init__(self, connection, l3_matching=False):
-        self._routing_controller = RoutingController(switches, weight_map, pox_logger)
         self.connection = connection
         self.l3_matching = l3_matching
         connection.addListeners(self)
@@ -129,8 +129,10 @@ class Switch(EventMixin):
                 msg.in_port = event.port
                 self.connection.send(msg)
 
-        pox_logger.debug("Received PacketIn")
         packet = event.parsed
+        pox_logger.debug("Received packet [SRC: h%s(%s) DST: h%s(%s)]",
+                         str(packet.src)[-1], packet.src,
+                         str(packet.dst)[-1], packet.dst)
 
         SwitchPort = namedtuple('SwitchPoint', 'dpid port')
 
@@ -154,17 +156,17 @@ class Switch(EventMixin):
         else:
             dst = mac_table[packet.dst]
 
-            # if not self._routing_controller.is_segmented:
-            #    self._routing_controller.compute_islands()
-
-            path = self._routing_controller.compute_path(self.connection.dpid, dst.dpid)
-            if path is None:
+            alg = DijkstraAlgorithm(weight_map, switches.keys())
+            route = alg.compute_shortest_path(src=self.connection.dpid, dst=dst.dpid)
+            Sender(pox_logger).send_path(route.__repr__())
+            if not route:
                 flood()
                 return
 
-            pox_logger.debug("Path from %s to %s over path %s", packet.src, packet.dst, path)
+            pox_logger.debug("Computed route from h%s to h%s: %s",
+                             str(packet.src)[-1], str(packet.dst)[-1], route)
             match = of.ofp_match.from_packet(packet)
-            _install_path(path, match)
+            _install_route(route, match)
             drop()
             dst = mac_table[packet.dst]
             msg = of.ofp_packet_out()
@@ -172,7 +174,7 @@ class Switch(EventMixin):
             msg.actions.append(of.ofp_action_output(port=dst.port))
             switches[dst.dpid].connection.send(msg)
 
-            self.raiseEvent(NewFlowEvent(path, match, port_map))
+            self.raiseEvent(NewFlowEvent(route, match, port_map))
 
     def _handle_ConnectionDown(self, event):
         pox_logger.debug("Switch s%s going down", self.connection.dpid)
@@ -186,7 +188,7 @@ class NewSwitchEvent(Event):
 
 
 class Forwarding(EventMixin):
-    _core_name = "sdnrouting_forwarding"
+    _core_name = "sdnrouting_dijkstra"
     _eventMixin_events = {NewSwitchEvent}
 
     def __init__(self, l3_matching):

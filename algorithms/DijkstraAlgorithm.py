@@ -13,9 +13,9 @@ class DijkstraAlgorithm(object):
         self._viewed_vertices = []
         self._vertices = vertices
 
-    def compute_shortest_path(self, source_vertex, destination_vertex):
-        self._source_vertex = source_vertex
-        self._destination_vertex = destination_vertex
+    def compute_shortest_path(self, src, dst):
+        self._source_vertex = src
+        self._destination_vertex = dst
 
         for vertex in self._vertices:
             self._distance[vertex] = float("+inf")
