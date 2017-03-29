@@ -218,3 +218,15 @@ class SegmentationAlgorithm(object):
                     neighbor_connected_by_min_weight = neighbor
                     min_weight = self._weights_matrix[switch][neighbor]
         return self.find_island_for(neighbor_connected_by_min_weight), min_weight
+
+    def find_island_with(self, s1, s2):
+        for island in self.islands:
+            if s1 in island and s2 in island:
+                return island
+        return []
+
+    def convert_islands_to_bytes(self):
+        islands_representation = []
+        for island in self.islands:
+            islands_representation.append(','.join([str(sw) for sw in island]))
+        return bytearray(';'.join(islands_representation), 'utf-8')

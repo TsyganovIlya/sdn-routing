@@ -14,11 +14,11 @@ class YenAlgorithm(object):
     def shortest_paths(self):
         return self._shortest_paths
 
-    def _compute_shortest_path(self, source_vertex, destination_vertex):
-        return self._dijkstra_alg.compute_shortest_path(source_vertex, destination_vertex)
+    def _compute_shortest_path(self, src, dst):
+        return self._dijkstra_alg.compute_shortest_path(src, dst)
 
-    def compute_shortest_paths(self, source_vertex, destination_vertex):
-        shortest_path = self._compute_shortest_path(source_vertex, destination_vertex)
+    def compute_shortest_paths(self, src, dst):
+        shortest_path = self._compute_shortest_path(src, dst)
         self._shortest_paths.append(shortest_path)
         for _ in range(self._k - 1):
             min_distance = float('+inf')
@@ -26,7 +26,7 @@ class YenAlgorithm(object):
             removed_edge = None
             for edge in [shortest_path.get_edge(i, i + 1) for i in range(len(shortest_path) - 1)]:
                 self._graph.remove(edge)
-                intermediate_shortest_path = self._compute_shortest_path(source_vertex, destination_vertex)
+                intermediate_shortest_path = self._compute_shortest_path(src, dst)
                 if self._graph.count_distance_for(intermediate_shortest_path) <= min_distance:
                     min_distance = self._graph.count_distance_for(intermediate_shortest_path)
                     new_shortest_path = intermediate_shortest_path
@@ -38,4 +38,10 @@ class YenAlgorithm(object):
                 shortest_path = new_shortest_path
             else:
                 return
+
+    def convert_paths_to_bytes(self):
+        paths_representation = []
+        for path in self._shortest_paths :
+            paths_representation.append(path.__repr__())
+        return bytearray(';'.join(paths_representation), 'utf-8')
 

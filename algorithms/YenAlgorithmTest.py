@@ -18,7 +18,7 @@ class YenAlgorithmTest(unittest.TestCase):
             Path([1, 4, 5])
         ]
         alg = YenAlgorithm(weights_matrix, switches, k=3)
-        alg.compute_shortest_paths(source_vertex=1, destination_vertex=5)
+        alg.compute_shortest_paths(src=1, dst=5)
         self.assertSequenceEqual(expected_paths, alg.shortest_paths)
 
         switches = range(1, 7)
@@ -34,7 +34,7 @@ class YenAlgorithmTest(unittest.TestCase):
             Path([1, 4, 6])
         ]
         alg = YenAlgorithm(weights_matrix, switches, k=3)
-        alg.compute_shortest_paths(source_vertex=1, destination_vertex=6)
+        alg.compute_shortest_paths(src=1, dst=6)
         self.assertSequenceEqual(expected_paths, alg.shortest_paths)
 
 if __name__ == '__main__':
