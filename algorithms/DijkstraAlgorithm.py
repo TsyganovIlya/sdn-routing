@@ -13,6 +13,10 @@ class DijkstraAlgorithm(object):
         self._viewed_vertices = []
         self._vertices = vertices
 
+    @property
+    def previous(self):
+        return self._previous
+
     def compute_shortest_path(self, src, dst):
         self._source_vertex = src
         self._destination_vertex = dst
