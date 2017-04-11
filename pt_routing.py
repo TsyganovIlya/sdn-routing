@@ -68,7 +68,11 @@ class NewFlowEvent(Event):
 class Switch(EventMixin):
     _eventMixin_events = {NewFlowEvent}
     can_recompute = False
+<<<<<<< HEAD
     changes_number = 25
+=======
+    changes_number = 15
+>>>>>>> eff18dcc55e5cda7159d1ac82b303cbb1dc06ce0
 
     def __init__(self, connection, l3_matching=False):
         self.connection = connection
@@ -202,9 +206,13 @@ class Switch(EventMixin):
         msg.actions.append(of.ofp_action_output(port=dst.port))
         switches[dst.dpid].connection.send(msg)
         self.raiseEvent(NewFlowEvent(route, match, port_map))
+<<<<<<< HEAD
         pt = alg.count_pair_transitions()
         print pt
         Sender(pox_logger).send_pt(pt)
+=======
+        print alg.count_pair_transitions()
+>>>>>>> eff18dcc55e5cda7159d1ac82b303cbb1dc06ce0
         if Switch.changes_number > 0:
             core.callDelayed(6, self.recompute, packet, event)
         Switch.changes_number -= 1
