@@ -30,7 +30,7 @@ class PairTransitionsAlgorithm(object):
     def count_pair_transitions(self):
         old_tree_edges = self.tree_edges
         self.collect_statistics()
-        return len(self.tree_edges - old_tree_edges)
+        return len(self.tree_edges - old_tree_edges) / 2
 
     def collect_statistics(self):
         all_edges = self.unpack_edges_from_weights(
@@ -54,4 +54,3 @@ class PairTransitionsAlgorithm(object):
                 tree_edges.add((item, previous[item]))
                 tree_edges.add((previous[item], item))
         return tree_edges
-

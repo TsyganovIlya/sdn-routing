@@ -6,6 +6,7 @@ Requires openflow.discovery
 
 from collections import defaultdict
 from collections import namedtuple
+import random
 from algorithms.PairTransitionsAlgorithm import PairTransitionsAlgorithm
 
 import pox.openflow.libopenflow_01 as of
@@ -13,6 +14,7 @@ from pox.core import core
 from pox.lib.revent.revent import EventMixin, Event
 
 from network.MetricDataParser import MetricDataParser
+from network.Sender import Sender
 
 pox_logger = core.getLogger()
 
@@ -65,6 +67,8 @@ class NewFlowEvent(Event):
 
 class Switch(EventMixin):
     _eventMixin_events = {NewFlowEvent}
+    can_recompute = False
+    changes_number = 25
 
     def __init__(self, connection, l3_matching=False):
         self.connection = connection
@@ -147,7 +151,6 @@ class Switch(EventMixin):
         elif packet.dst not in mac_table:
             flood()
         elif packet.effective_ethertype == packet.ARP_TYPE:
-
             drop()
             dst = mac_table[packet.dst]
             msg = of.ofp_packet_out()
@@ -168,6 +171,7 @@ class Switch(EventMixin):
 
             match = of.ofp_match.from_packet(packet)
             _install_route(route, match)
+            Sender(pox_logger).send_path(route.__repr__())
             drop()
             dst = mac_table[packet.dst]
             msg = of.ofp_packet_out()
@@ -177,33 +181,38 @@ class Switch(EventMixin):
 
             self.raiseEvent(NewFlowEvent(route, match, port_map))
 
-            core.callDelayed(3, self.recompute,
-                packet,
-                self.connection.dpid,
-                dst.dpid,
-                event,
-            )
+            if Switch.can_recompute:
+                core.callDelayed(6, self.recompute, packet, event)
+            else:
+                Switch.can_recompute = True
 
-    def recompute(self, packet, src, dst, event):
-        weight_map[1][2] = 1000
-        weight_map[2][1] = 1000
-        alg.recompute_shortest_route()
-        route = alg.compute_shortest_route(src, dst)
-        alg.collect_statistics()
+    def recompute(self, packet, event):
+        self.change_metric()
+        route = alg.recompute_shortest_route()
 
         pox_logger.debug("Computed route from h%s to h%s: %s",
                          str(packet.src)[-1], str(packet.dst)[-1], route)
 
         match = of.ofp_match.from_packet(packet)
         _install_route(route, match)
+        Sender(pox_logger).send_path(route.__repr__())
         dst = mac_table[packet.dst]
         msg = of.ofp_packet_out()
         msg.data = event.ofp.data
         msg.actions.append(of.ofp_action_output(port=dst.port))
         switches[dst.dpid].connection.send(msg)
-
         self.raiseEvent(NewFlowEvent(route, match, port_map))
-        print alg.count_pair_transitions()
+        pt = alg.count_pair_transitions()
+        print pt
+        Sender(pox_logger).send_pt(pt)
+        if Switch.changes_number > 0:
+            core.callDelayed(6, self.recompute, packet, event)
+        Switch.changes_number -= 1
+
+    def change_metric(self):
+        tmp = random.choice(weight_map.items())
+        weight_map[tmp[0]][random.choice(tmp[1].keys())] = \
+            random.randint(1, 15)
 
     def _handle_ConnectionDown(self, event):
         pox_logger.debug("Switch s%s going down", self.connection.dpid)

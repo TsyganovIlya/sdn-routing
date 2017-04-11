@@ -38,3 +38,14 @@ class Sender(object):
             # self.logger.debug('Caught exception socket.error: {0}'.format(e))
         finally:
             sender.close()
+
+    def send_pt(self, pt):
+        sender = socket.socket()
+        try:
+            sender.connect(('127.0.0.1', 6111))
+            sender.send('PT:' + str(pt))
+        except socket.error as e:
+            pass
+            # self.logger.debug('Caught exception socket.error: {0}'.format(e))
+        finally:
+            sender.close()
