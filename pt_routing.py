@@ -1,9 +1,3 @@
-"""
-OpenNetMon.Forwarding
-
-Requires openflow.discovery
-"""
-
 from collections import defaultdict
 from collections import namedtuple
 import random
@@ -31,30 +25,29 @@ def _install_route(path, match):
     destination_switch_index = path.destination
     current_switch_index = path.source
     destination_package = match.dl_dst
-
-    message = of.ofp_flow_mod()
-    message.match = match
-    message.idle_timeout = 10
-    message.flags = of.OFPFF_SEND_FLOW_REM
-    message.actions.append(of.ofp_action_output(port=mac_table[destination_package].port))
-    pox_logger.debug("Installing forward from switch s%s to output port %s", current_switch_index,
-                     mac_table[destination_package].port)
+    pox_logger.debug("Installing forward from switch s%s to output port %s",
+                     current_switch_index, mac_table[destination_package].port)
+    message = build_flow_install_message(match, mac_table[destination_package].port)
     switches[destination_switch_index].connection.send(message)
 
     iterator = path.vertex_iterator
     while iterator.move_next():
         next_switch_index = iterator.current
-
-        message = of.ofp_flow_mod()
-        message.match = match
-        message.idle_timeout = 10
-        message.flags = of.OFPFF_SEND_FLOW_REM
-        pox_logger.debug("Installing forward from switch s%s to switch s%s output port %s", current_switch_index,
-                         next_switch_index, port_map[current_switch_index][next_switch_index])
-        message.actions.append(of.ofp_action_output(port=port_map[current_switch_index][next_switch_index]))
+        pox_logger.debug("Installing forward from switch s%s to switch s%s output port %s",
+                         current_switch_index, next_switch_index,
+                         port_map[current_switch_index][next_switch_index])
+        message = build_flow_install_message(match, port_map[current_switch_index][next_switch_index])
         switches[current_switch_index].connection.send(message)
-
         current_switch_index = next_switch_index
+
+
+def build_flow_install_message(match, outport):
+    message = of.ofp_flow_mod()
+    message.match = match
+    message.idle_timeout = 10
+    message.flags = of.OFPFF_SEND_FLOW_REM
+    message.actions.append(of.ofp_action_output(port=outport))
+    return message
 
 
 class NewFlowEvent(Event):
@@ -65,16 +58,14 @@ class NewFlowEvent(Event):
         self.adj = adj
 
 
-class Switch(EventMixin):
+class ControllerEventHandler(EventMixin):
     _eventMixin_events = {NewFlowEvent}
+    # мои костыли
     can_recompute = False
-<<<<<<< HEAD
     changes_number = 25
-=======
-    changes_number = 15
->>>>>>> eff18dcc55e5cda7159d1ac82b303cbb1dc06ce0
 
     def __init__(self, connection, l3_matching=False):
+        super(ControllerEventHandler, self).__init__()
         self.connection = connection
         self.l3_matching = l3_matching
         connection.addListeners(self)
@@ -82,14 +73,13 @@ class Switch(EventMixin):
             self.enable_flooding(p.port_no)
 
     def __repr__(self):
-        return 's%s' % self.connection.dpid
+        return 's{}'.format(self.connection.dpid)
 
     def disable_flooding(self, port):
         msg = of.ofp_port_mod(port_no=port,
                               hw_addr=self.connection.ports[port].hw_addr,
                               config=of.OFPPC_NO_FLOOD,
                               mask=of.OFPPC_NO_FLOOD)
-
         self.connection.send(msg)
 
     def enable_flooding(self, port):
@@ -97,23 +87,11 @@ class Switch(EventMixin):
                               hw_addr=self.connection.ports[port].hw_addr,
                               config=0,  # opposite of of.OFPPC_NO_FLOOD,
                               mask=of.OFPPC_NO_FLOOD)
-
         self.connection.send(msg)
 
     def _handle_PacketIn(self, event):
 
-        def forward(port):
-            msg = of.ofp_packet_out()
-            msg.actions.append(of.ofp_action_output(port=port))
-            if event.ofp.buffer_id is not None:
-                msg.buffer_id = event.ofp.buffer_id
-            else:
-                msg.data = event.ofp.data
-            msg.in_port = event.port
-            self.connection.send(msg)
-
         def flood():
-            # forward(of.OFPP_FLOOD)
             for (dpid, switch) in switches.iteritems():
                 msg = of.ofp_packet_out()
                 if switch == self:
@@ -185,10 +163,10 @@ class Switch(EventMixin):
 
             self.raiseEvent(NewFlowEvent(route, match, port_map))
 
-            if Switch.can_recompute:
+            if ControllerEventHandler.can_recompute:
                 core.callDelayed(6, self.recompute, packet, event)
             else:
-                Switch.can_recompute = True
+                ControllerEventHandler.can_recompute = True
 
     def recompute(self, packet, event):
         self.change_metric()
@@ -206,16 +184,12 @@ class Switch(EventMixin):
         msg.actions.append(of.ofp_action_output(port=dst.port))
         switches[dst.dpid].connection.send(msg)
         self.raiseEvent(NewFlowEvent(route, match, port_map))
-<<<<<<< HEAD
         pt = alg.count_pair_transitions()
         print pt
         Sender(pox_logger).send_pt(pt)
-=======
-        print alg.count_pair_transitions()
->>>>>>> eff18dcc55e5cda7159d1ac82b303cbb1dc06ce0
-        if Switch.changes_number > 0:
+        if ControllerEventHandler.changes_number > 0:
             core.callDelayed(6, self.recompute, packet, event)
-        Switch.changes_number -= 1
+        ControllerEventHandler.changes_number -= 1
 
     def change_metric(self):
         tmp = random.choice(weight_map.items())
@@ -227,8 +201,7 @@ class Switch(EventMixin):
         del switches[self.connection.dpid]
 
 
-
-class NewSwitchEvent(Event):
+class SwitchConnectedEvent(Event):
     def __init__(self, switch):
         Event.__init__(self)
         self.switch = switch
@@ -236,7 +209,7 @@ class NewSwitchEvent(Event):
 
 class Forwarding(EventMixin):
     _core_name = "sdnrouting_pt"
-    _eventMixin_events = {NewSwitchEvent}
+    _eventMixin_events = {SwitchConnectedEvent}
 
     def __init__(self, l3_matching):
         pox_logger.debug("Forwarding coming up")
@@ -265,9 +238,9 @@ class Forwarding(EventMixin):
 
     def _handle_ConnectionUp(self, event):
         pox_logger.debug("New switch connection: %s", event.connection)
-        switch = Switch(event.connection, l3_matching=self.l3_matching)
+        switch = ControllerEventHandler(event.connection, l3_matching=self.l3_matching)
         switches[event.dpid] = switch
-        self.raiseEvent(NewSwitchEvent(switch))
+        self.raiseEvent(SwitchConnectedEvent(switch))
 
 
 def launch(l3_matching=False):
