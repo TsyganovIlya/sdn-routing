@@ -4,6 +4,7 @@ import random
 from algorithms.PairTransitionsAlgorithm import PairTransitionsAlgorithm
 
 import pox.openflow.libopenflow_01 as of
+from pox.openflow.libopenflow_01 import ofp_flow_mod_flags_rev_map
 from pox.core import core
 from pox.lib.revent.revent import EventMixin, Event
 
@@ -12,42 +13,37 @@ from network.Sender import Sender
 
 pox_logger = core.getLogger()
 
-switches = {}
+switch_objects = {}
 switch_ports = {}
 port_map = defaultdict(lambda: defaultdict(lambda: None))
 weight_map = defaultdict(lambda: defaultdict(lambda: None))
 mac_table = {}
 
-alg = PairTransitionsAlgorithm(switches, weight_map)
+alg = PairTransitionsAlgorithm(switch_objects, weight_map)
 
 
 def _install_route(path, match):
     destination_switch_index = path.destination
     current_switch_index = path.source
     destination_package = match.dl_dst
-    pox_logger.debug("Installing forward from switch s%s to output port %s",
-                     current_switch_index, mac_table[destination_package].port)
     message = build_flow_install_message(match, mac_table[destination_package].port)
-    switches[destination_switch_index].connection.send(message)
+    switch_objects[destination_switch_index].connection.send(message)
 
     iterator = path.vertex_iterator
     while iterator.move_next():
         next_switch_index = iterator.current
-        pox_logger.debug("Installing forward from switch s%s to switch s%s output port %s",
-                         current_switch_index, next_switch_index,
-                         port_map[current_switch_index][next_switch_index])
         message = build_flow_install_message(match, port_map[current_switch_index][next_switch_index])
-        switches[current_switch_index].connection.send(message)
+        switch_objects[current_switch_index].connection.send(message)
         current_switch_index = next_switch_index
 
 
 def build_flow_install_message(match, outport):
-    message = of.ofp_flow_mod()
-    message.match = match
-    message.idle_timeout = 10
-    message.flags = of.OFPFF_SEND_FLOW_REM
-    message.actions.append(of.ofp_action_output(port=outport))
-    return message
+    msg = of.ofp_flow_mod()
+    msg.match = match
+    msg.idle_timeout = 10
+    msg.flags = ofp_flow_mod_flags_rev_map["OFPFF_SEND_FLOW_REM"]
+    msg.actions.append(of.ofp_action_output(port=outport))
+    return msg
 
 
 class NewFlowEvent(Event):
@@ -58,41 +54,24 @@ class NewFlowEvent(Event):
         self.adj = adj
 
 
-class ControllerEventHandler(EventMixin):
+class SwitchObject(EventMixin):
     _eventMixin_events = {NewFlowEvent}
-    # мои костыли
     can_recompute = False
     changes_number = 25
 
     def __init__(self, connection, l3_matching=False):
-        super(ControllerEventHandler, self).__init__()
+        super(SwitchObject, self).__init__()
         self.connection = connection
         self.l3_matching = l3_matching
         connection.addListeners(self)
-        for p in self.connection.ports.itervalues():
-            self.enable_flooding(p.port_no)
 
     def __repr__(self):
         return 's{}'.format(self.connection.dpid)
 
-    def disable_flooding(self, port):
-        msg = of.ofp_port_mod(port_no=port,
-                              hw_addr=self.connection.ports[port].hw_addr,
-                              config=of.OFPPC_NO_FLOOD,
-                              mask=of.OFPPC_NO_FLOOD)
-        self.connection.send(msg)
-
-    def enable_flooding(self, port):
-        msg = of.ofp_port_mod(port_no=port,
-                              hw_addr=self.connection.ports[port].hw_addr,
-                              config=0,  # opposite of of.OFPPC_NO_FLOOD,
-                              mask=of.OFPPC_NO_FLOOD)
-        self.connection.send(msg)
-
     def _handle_PacketIn(self, event):
 
         def flood():
-            for (dpid, switch) in switches.iteritems():
+            for (dpid, switch) in switch_objects.iteritems():
                 msg = of.ofp_packet_out()
                 if switch == self:
                     if event.ofp.buffer_id is not None:
@@ -106,7 +85,7 @@ class ControllerEventHandler(EventMixin):
                 if len(ports) > 0:
                     for p in ports:
                         msg.actions.append(of.ofp_action_output(port=p))
-                    switches[dpid].connection.send(msg)
+                    switch_objects[dpid].connection.send(msg)
 
         def drop():
             if event.ofp.buffer_id is not None:
@@ -117,10 +96,6 @@ class ControllerEventHandler(EventMixin):
                 self.connection.send(msg)
 
         packet = event.parsed
-        pox_logger.debug("Received packet [SRC: h%s(%s) DST: h%s(%s)]",
-                         str(packet.src)[-1], packet.src,
-                         str(packet.dst)[-1], packet.dst)
-
         SwitchPort = namedtuple('SwitchPoint', 'dpid port')
 
         if (event.dpid, event.port) not in switch_ports:
@@ -138,19 +113,16 @@ class ControllerEventHandler(EventMixin):
             msg = of.ofp_packet_out()
             msg.data = event.ofp.data
             msg.actions.append(of.ofp_action_output(port=dst.port))
-            switches[dst.dpid].connection.send(msg)
+            switch_objects[dst.dpid].connection.send(msg)
         else:
             dst = mac_table[packet.dst]
-
             route = alg.compute_shortest_route(src=self.connection.dpid, dst=dst.dpid)
             alg.collect_statistics()
             if not route:
                 flood()
                 return
-
-            pox_logger.debug("Computed route from h%s to h%s: %s",
-                             str(packet.src)[-1], str(packet.dst)[-1], route)
-
+            print "Computed route from h{} to h{}: {}".format(
+                str(packet.src)[-1], str(packet.dst)[-1], route)
             match = of.ofp_match.from_packet(packet)
             _install_route(route, match)
             Sender(pox_logger).send_path(route.__repr__())
@@ -159,21 +131,19 @@ class ControllerEventHandler(EventMixin):
             msg = of.ofp_packet_out()
             msg.data = event.ofp.data
             msg.actions.append(of.ofp_action_output(port=dst.port))
-            switches[dst.dpid].connection.send(msg)
-
+            switch_objects[dst.dpid].connection.send(msg)
             self.raiseEvent(NewFlowEvent(route, match, port_map))
-
-            if ControllerEventHandler.can_recompute:
-                core.callDelayed(6, self.recompute, packet, event)
-            else:
-                ControllerEventHandler.can_recompute = True
+            # if ControllerEventHandler.can_recompute:
+            #     core.callDelayed(6, self.recompute, packet, event)
+            # else:
+            #     ControllerEventHandler.can_recompute = True
 
     def recompute(self, packet, event):
         self.change_metric()
         route = alg.recompute_shortest_route()
 
-        pox_logger.debug("Computed route from h%s to h%s: %s",
-                         str(packet.src)[-1], str(packet.dst)[-1], route)
+        print "Computed route from h{} to h{}: {}".format(
+            str(packet.src)[-1], str(packet.dst)[-1], route)
 
         match = of.ofp_match.from_packet(packet)
         _install_route(route, match)
@@ -182,14 +152,14 @@ class ControllerEventHandler(EventMixin):
         msg = of.ofp_packet_out()
         msg.data = event.ofp.data
         msg.actions.append(of.ofp_action_output(port=dst.port))
-        switches[dst.dpid].connection.send(msg)
+        switch_objects[dst.dpid].connection.send(msg)
         self.raiseEvent(NewFlowEvent(route, match, port_map))
         pt = alg.count_pair_transitions()
         print pt
         Sender(pox_logger).send_pt(pt)
-        if ControllerEventHandler.changes_number > 0:
+        if SwitchObject.changes_number > 0:
             core.callDelayed(6, self.recompute, packet, event)
-        ControllerEventHandler.changes_number -= 1
+        SwitchObject.changes_number -= 1
 
     def change_metric(self):
         tmp = random.choice(weight_map.items())
@@ -197,8 +167,7 @@ class ControllerEventHandler(EventMixin):
             random.randint(1, 15)
 
     def _handle_ConnectionDown(self, event):
-        pox_logger.debug("Switch s%s going down", self.connection.dpid)
-        del switches[self.connection.dpid]
+        del switch_objects[self.connection.dpid]
 
 
 class SwitchConnectedEvent(Event):
@@ -211,7 +180,8 @@ class Forwarding(EventMixin):
     _core_name = "sdnrouting_pt"
     _eventMixin_events = {SwitchConnectedEvent}
 
-    def __init__(self, l3_matching):
+    def __init__(self):
+        super(Forwarding, self).__init__()
         pox_logger.debug("Forwarding coming up")
 
         def startup():
@@ -222,26 +192,20 @@ class Forwarding(EventMixin):
             parser.read_matrix_from("metric_data.txt")
             pox_logger.debug("Forwarding started")
 
-        self.l3_matching = l3_matching
         core.call_when_ready(startup, 'openflow', 'openflow_discovery')
 
     def _handle_LinkEvent(self, event):
         link = event.link
         if event.added:
-            pox_logger.debug("Received LinkEvent, Link Added from s%s to s%s over port %d", link.dpid1,
-                             link.dpid2, link.port1)
             port_map[link.dpid1][link.dpid2] = link.port1
             switch_ports[link.dpid1, link.port1] = link
-        else:
-            pox_logger.debug("Received LinkEvent, Link Removed from s%s to s%s over port %d", link.dpid1,
-                             link.dpid2, link.port1)
 
     def _handle_ConnectionUp(self, event):
-        pox_logger.debug("New switch connection: %s", event.connection)
-        switch = ControllerEventHandler(event.connection, l3_matching=self.l3_matching)
-        switches[event.dpid] = switch
+        print "New switch connection: {}".format(event.connection)
+        switch = SwitchObject(event.connection)
+        switch_objects[event.dpid] = switch
         self.raiseEvent(SwitchConnectedEvent(switch))
 
 
-def launch(l3_matching=False):
-    core.registerNew(Forwarding, l3_matching)
+def launch():
+    core.registerNew(Forwarding)
