@@ -1,6 +1,6 @@
 from SegmentationAlgorithm import SegmentationAlgorithm
 from DijkstraAlgorithm import DijkstraAlgorithm
-from network.Sender import Sender
+from network.sending import Sender
 from collections import defaultdict
 from util.DeepCopier import DeepCopier
 from algorithms.YenAlgorithm import YenAlgorithm

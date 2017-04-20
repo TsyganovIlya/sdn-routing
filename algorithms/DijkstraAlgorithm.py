@@ -1,4 +1,4 @@
-from domain.Path import Path
+from domain.Route import Route
 
 
 class DijkstraAlgorithm(object):
@@ -40,7 +40,7 @@ class DijkstraAlgorithm(object):
                         self._previous[vertex] = current_vertex
 
         ordered_vertices = self._recover_path()
-        return Path(ordered_vertices)
+        return Route(ordered_vertices)
 
     def _find_nearest_vertex(self):
         min_distance = float('+inf')

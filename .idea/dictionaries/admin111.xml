@@ -2,6 +2,8 @@
   <dictionary name="admin111">
     <words>
       <w>dpid</w>
+      <w>ofpff</w>
+      <w>outport</w>
       <w>vlan</w>
     </words>
   </dictionary>

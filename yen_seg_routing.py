@@ -8,14 +8,13 @@ from collections import defaultdict
 from collections import namedtuple
 
 import pox.openflow.libopenflow_01 as of
+from algorithms.SegmentationAlgorithm import SegmentationAlgorithm
+from algorithms.YenAlgorithm import YenAlgorithm
+from network.sending import Sender
 from pox.core import core
 from pox.lib.revent.revent import EventMixin, Event
-
-from network.MetricDataParser import MetricDataParser
-from algorithms.YenAlgorithm import YenAlgorithm
-from algorithms.SegmentationAlgorithm import SegmentationAlgorithm
-from network.Sender import Sender
 from util.DeepCopier import DeepCopier
+from util.parsing import MetricDataParser
 
 pox_logger = core.getLogger()
 
@@ -40,7 +39,7 @@ def _install_route(path, match):
                      mac_table[destination_package].port)
     switches[destination_switch_index].connection.send(message)
 
-    iterator = path.vertex_iterator
+    iterator = path.switch_iterator
     while iterator.move_next():
         next_switch_index = iterator.current
 

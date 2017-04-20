@@ -1,6 +1,6 @@
 import unittest
 from algorithms.YenAlgorithm import YenAlgorithm
-from domain.Path import Path
+from domain.Route import Route
 
 
 class YenAlgorithmTest(unittest.TestCase):
@@ -13,9 +13,9 @@ class YenAlgorithmTest(unittest.TestCase):
                           4: {1: 10, 5: 20},
                           5: {2: 12, 3: 6, 4: 20}}
         expected_paths = [
-            Path([1, 3, 5]),
-            Path([1, 2, 5]),
-            Path([1, 4, 5])
+            Route([1, 3, 5]),
+            Route([1, 2, 5]),
+            Route([1, 4, 5])
         ]
         alg = YenAlgorithm(weights_matrix, switches, k=3)
         alg.compute_shortest_paths(src=1, dst=5)
@@ -29,9 +29,9 @@ class YenAlgorithmTest(unittest.TestCase):
                           5: {2: 60, 3: 30, 6: 40},
                           6: {5: 40, 3: 20, 4: 50}}
         expected_paths = [
-            Path([1, 3, 6]),
-            Path([1, 3, 5, 6]),
-            Path([1, 4, 6])
+            Route([1, 3, 6]),
+            Route([1, 3, 5, 6]),
+            Route([1, 4, 6])
         ]
         alg = YenAlgorithm(weights_matrix, switches, k=3)
         alg.compute_shortest_paths(src=1, dst=6)

@@ -1,4 +1,4 @@
-from domain.Path import Path
+from domain.Route import Route
 from algorithms.DijkstraAlgorithm import DijkstraAlgorithm
 
 
@@ -9,7 +9,7 @@ class PairTransitionsAlgorithm(object):
         self._weights = weights
         self.tree_edges = set()
         self.replacement_edges = set()
-        self.current_route = Path([])
+        self.current_route = Route([])
         self.previous = {}
 
     def compute_shortest_route(self, src, dst):
