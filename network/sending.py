@@ -7,6 +7,7 @@ __all__ = [
     "send_paths",
     "send_metric",
     "send_pt",
+    "send_message",
 ]
 
 
@@ -30,11 +31,15 @@ def send_pt(pt):
     send("PT", str(pt))
 
 
+def send_message(msg):
+    send("Message", msg)
+
+
 def send(command_head, command_body):
     sender = socket.socket()
     try:
         sender.connect(('127.0.0.1', 6111))
-        sender.send(command_head + ":" + command_body)
+        sender.send(command_head + "#" + command_body)
     except socket.error as e:
         print('Caught exception socket.error: {0}'.format(e))
     finally:
