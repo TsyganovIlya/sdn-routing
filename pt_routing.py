@@ -3,7 +3,7 @@ from collections import defaultdict, namedtuple
 
 import pox.openflow.libopenflow_01 as of
 from algorithms.PairTransitionsAlgorithm import PairTransitionsAlgorithm
-from network.sending import send_pt, send_route, send_metric, send_message
+from network.sending import *
 from pox.core import core
 from pox.lib.revent.revent import EventMixin
 from pox.openflow.libopenflow_01 import ofp_flow_mod_flags_rev_map
@@ -127,7 +127,7 @@ class SwitchObject(EventMixin):
         send_message("")
         match = of.ofp_match.from_packet(packet)
         install_route(route, match)
-        send_route(route)
+        send_tree(alg.tree)
         if SwitchObject.can_recompute:
             core.callDelayed(2, self.simulate_routing, event)
         else:
@@ -139,7 +139,7 @@ class SwitchObject(EventMixin):
             tmp = random.choice(weight_map.items())
             s1 = tmp[0]
             s2 = random.choice(tmp[1].keys())
-            new_metric = random.randint(1, 500)
+            new_metric = random.randint(20, 100)
             send_message("Link s{}-s{}: {} -> {}".format(
                 s1, s2, weight_map[s1][s2], new_metric))
             weight_map[s1][s2] = new_metric
@@ -148,19 +148,19 @@ class SwitchObject(EventMixin):
         change_metric()
         packet = event.parsed
         route = alg.recompute_shortest_route()
-        send_message("Route from h{} to h{}: {}".format(
-            str(packet.src)[-1], str(packet.dst)[-1], route))
         match = of.ofp_match.from_packet(packet)
         install_route(route, match)
-        send_route(route)
         self.forward(event)
         pt = alg.count_pair_transitions()
+        send_message("Route from h{} to h{}: {}".format(
+            str(packet.src)[-1], str(packet.dst)[-1], route))
         send_message("Pair transitions occurred: {}".format(pt))
         send_message("")
         send_message("")
+        send_tree(alg.tree)
         send_pt(pt)
         if SwitchObject.changes_number > 0:
-            core.callDelayed(1, self.simulate_routing, event)
+            core.callDelayed(2, self.simulate_routing, event)
         SwitchObject.changes_number -= 1
 
     def _handle_PacketIn(self, event):

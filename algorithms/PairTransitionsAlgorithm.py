@@ -12,6 +12,10 @@ class PairTransitionsAlgorithm(object):
         self.current_route = Route([])
         self.previous = {}
 
+    @property
+    def tree(self):
+        return self.tree_edges
+
     def compute_shortest_route(self, src, dst):
         dijkstra = DijkstraAlgorithm(
             self._weights, self._switches)

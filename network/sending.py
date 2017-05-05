@@ -8,6 +8,7 @@ __all__ = [
     "send_metric",
     "send_pt",
     "send_message",
+    "send_tree",
 ]
 
 
@@ -33,6 +34,15 @@ def send_pt(pt):
 
 def send_message(msg):
     send("Message", msg)
+
+
+def send_tree(links):
+    tree_builder = []
+    for link in links:
+        tree_builder.append(",".join(str(s) for s in link))
+    tree = "-".join(tree_builder)
+    send("Tree", tree)
+    return tree
 
 
 def send(command_head, command_body):
