@@ -1,9 +1,3 @@
-"""
-OpenNetMon.Forwarding
-
-Requires openflow.discovery
-"""
-
 from collections import defaultdict
 from collections import namedtuple
 
